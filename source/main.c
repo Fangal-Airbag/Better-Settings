@@ -1,20 +1,19 @@
+#include <string.h>
+
 #include <wups.h>
 #include <wups/config/WUPSConfigItemBoolean.h>
 
 #include <whb/log.h>
 #include <whb/log_udp.h>
-#include <sysapp/title.h>
-#include <sysapp/launch.h>
 #include <coreinit/title.h>
+#include <sysapp/title.h>
 #include <gx2/surface.h>
-#include <vpad/input.h>
-#include <padscore/kpad.h>
 
 #include "buttons.h"
 
 WUPS_PLUGIN_NAME("Better Settings");
 WUPS_PLUGIN_DESCRIPTION("An aroma plugin that improves the System Settings user experience!");
-WUPS_PLUGIN_VERSION("v1.0");
+WUPS_PLUGIN_VERSION("v1.1");
 WUPS_PLUGIN_AUTHOR("Fangal");
 WUPS_PLUGIN_LICENSE("GPLv3");
 
@@ -27,7 +26,8 @@ bool mirrorScreens = true;
 bool inputRedirection = true;
 bool isConfigOpen = false;
 
-uint64_t sysTID;
+uint64_t sysTID = 0;
+uint64_t currentTID = 0;
 
 INITIALIZE_PLUGIN() {
     WHBLogUdpInit();
@@ -41,6 +41,10 @@ INITIALIZE_PLUGIN() {
     WUPS_GetBool(NULL, INPUT_REDIRECTION_CONFIG_ID, &inputRedirection);
     WUPS_StoreBool(NULL, INPUT_REDIRECTION_CONFIG_ID, inputRedirection);
     WUPS_CloseStorage();
+}
+
+ON_APPLICATION_START() {
+    currentTID = OSGetTitleID();
 }
 
 void mirrorScreensChanged(ConfigItemBoolean *item, bool newVal) {
@@ -77,7 +81,7 @@ WUPS_CONFIG_CLOSED() {
 }
 
 DECL_FUNCTION(void, GX2CopyColorBufferToScanBuffer, GX2ColorBuffer *colorBuffer, GX2ScanTarget scan_target) {
-    if (OSGetTitleID() == sysTID) {
+    if (currentTID == sysTID) {
         if (mirrorScreens) {
             if(scan_target == GX2_SCAN_TARGET_DRC) {
                real_GX2CopyColorBufferToScanBuffer(colorBuffer, GX2_SCAN_TARGET_DRC | GX2_SCAN_TARGET_TV);
@@ -95,10 +99,15 @@ DECL_FUNCTION(void, GX2CopyColorBufferToScanBuffer, GX2ColorBuffer *colorBuffer,
 DECL_FUNCTION(int32_t, VPADRead, VPADChan chan, VPADStatus *vStatus, uint32_t size, VPADReadError *err) {
     int32_t res = real_VPADRead(chan, vStatus, size, err);
 
-    if (!isConfigOpen) {
-        if (inputRedirection) {
-            calcVPAD(vStatus);
+    if (currentTID == sysTID && !isConfigOpen && inputRedirection) {
+        // For when a GamePad is not connected
+        // Special thanks to Lynx64 and Maschell for this!
+        if (err && *err != VPAD_READ_SUCCESS) {
+            *err = VPAD_READ_SUCCESS;
+            res = 1;
+            memset(vStatus, 0, sizeof(VPADStatus));
         }
+        calcVPAD(vStatus);
     }
 
     return res;
@@ -107,7 +116,7 @@ DECL_FUNCTION(int32_t, VPADRead, VPADChan chan, VPADStatus *vStatus, uint32_t si
 DECL_FUNCTION(int32_t, KPADReadEx, KPADChan chan, KPADStatus *kStatus, uint32_t size, KPADError *err) {
     int32_t res = real_KPADReadEx(chan, kStatus, size, err);
     
-    if (OSGetTitleID() == sysTID) {
+    if (currentTID == sysTID) {
         calcKPAD(kStatus);
     }
 

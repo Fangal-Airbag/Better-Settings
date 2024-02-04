@@ -1,6 +1,5 @@
 #pragma once
 
-#include <stdint.h>
 #include <vpad/input.h>
 #include <padscore/kpad.h>
 

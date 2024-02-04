@@ -1,5 +1,4 @@
 #include "buttons.h"
-#include <stdbool.h>
 
 const uint32_t BUTTON_A = WPAD_CLASSIC_BUTTON_A | WPAD_PRO_BUTTON_A;
 const uint32_t BUTTON_B = WPAD_CLASSIC_BUTTON_B | WPAD_PRO_BUTTON_B;
@@ -13,33 +12,50 @@ const uint32_t BUTTON_UP = WPAD_CLASSIC_BUTTON_UP | WPAD_CLASSIC_STICK_L_EMULATI
 const uint32_t BUTTON_DOWN = WPAD_CLASSIC_BUTTON_DOWN | WPAD_CLASSIC_STICK_L_EMULATION_DOWN | WPAD_PRO_BUTTON_DOWN | WPAD_PRO_STICK_L_EMULATION_DOWN;
 const uint32_t BUTTON_RIGHT = WPAD_CLASSIC_BUTTON_RIGHT | WPAD_CLASSIC_STICK_L_EMULATION_RIGHT | WPAD_PRO_BUTTON_RIGHT | WPAD_PRO_STICK_L_EMULATION_RIGHT;
 const uint32_t BUTTON_LEFT = WPAD_CLASSIC_BUTTON_LEFT | WPAD_CLASSIC_STICK_L_EMULATION_LEFT | WPAD_PRO_BUTTON_LEFT | WPAD_PRO_STICK_L_EMULATION_LEFT;
+const uint32_t BUTTON_PLUS = WPAD_CLASSIC_BUTTON_PLUS | WPAD_PRO_BUTTON_PLUS;
+const uint32_t BUTTON_MINUS = WPAD_CLASSIC_BUTTON_MINUS | WPAD_PRO_BUTTON_MINUS;
 
 bool aIsPressed = false;
 bool aIsHeld = false;
+
 bool bIsPressed = false;
 bool bIsHeld = false;
+
 bool xIsPressed = false;
 bool xIsHeld = false;
+
 bool yIsPressed = false;
 bool yIsHeld = false;
+
 bool rIsPressed = false;
 bool rIsHeld = false;
+
 bool lIsPressed = false;
 bool lIsHeld = false;
+
 bool zrIsPressed = false;
 bool zrIsHeld = false;
+
 bool zlIsPressed = false;
 bool zlIsHeld = false;
+
 bool upIsPressed = false;
 bool upIsHeld = false;
+
 bool downIsPressed = false;
 bool downIsHeld = false;
+
 bool leftIsPressed = false;
 bool leftIsHeld = false;
+
 bool rightIsPressed = false;
 bool rightIsHeld = false;
 
-float x, y;
+bool plusIsPressed = false;
+bool plusIsHeld = false;
+
+bool minusIsPressed = false;
+bool minusIsHeld = false;
 
 uint32_t buttonPressed(KPADStatus kStatus) {
     return kStatus.classic.trigger | kStatus.pro.trigger;
@@ -56,28 +72,45 @@ uint32_t buttonReleased(KPADStatus kStatus) {
 void calcVPAD(VPADStatus *vStatus) {
     if (aIsPressed) vStatus->trigger |= VPAD_BUTTON_A;
     if (aIsHeld) vStatus->hold |= VPAD_BUTTON_A;
+
     if (bIsPressed) vStatus->trigger |= VPAD_BUTTON_B;
     if (bIsHeld) vStatus->hold |= VPAD_BUTTON_B;
+
     if (xIsPressed) vStatus->trigger |= VPAD_BUTTON_X;
     if (xIsHeld) vStatus->hold |= VPAD_BUTTON_X;
+
     if (yIsPressed) vStatus->trigger |= VPAD_BUTTON_Y;
     if (yIsHeld) vStatus->hold |= VPAD_BUTTON_Y;
+
     if (rIsPressed) vStatus->trigger |= VPAD_BUTTON_R;
     if (rIsHeld) vStatus->hold |= VPAD_BUTTON_R;
+
     if (lIsPressed) vStatus->trigger |= VPAD_BUTTON_L;
     if (lIsHeld) vStatus->hold |= VPAD_BUTTON_L;
+
     if (zrIsPressed) vStatus->trigger |= VPAD_BUTTON_ZR;
     if (zrIsHeld) vStatus->hold |= VPAD_BUTTON_ZR;
+
     if (zlIsPressed) vStatus->trigger |= VPAD_BUTTON_ZL;
     if (zlIsHeld) vStatus->hold |= VPAD_BUTTON_ZL;
+
     if (upIsPressed) vStatus->trigger |= VPAD_BUTTON_UP;
     if (upIsHeld) vStatus->hold |= VPAD_BUTTON_UP;
+
     if (downIsPressed) vStatus->trigger |= VPAD_BUTTON_DOWN;
     if (downIsHeld) vStatus->hold |= VPAD_BUTTON_DOWN;
+
     if (leftIsPressed) vStatus->trigger |= VPAD_BUTTON_LEFT;
     if (leftIsHeld) vStatus->hold |= VPAD_BUTTON_LEFT;
+
     if (rightIsPressed) vStatus->trigger |= VPAD_BUTTON_RIGHT;
     if (rightIsHeld) vStatus->hold |= VPAD_BUTTON_RIGHT;
+
+    if (plusIsPressed) vStatus->trigger |= VPAD_BUTTON_PLUS;
+    if (plusIsHeld) vStatus->hold |= VPAD_BUTTON_PLUS;
+
+    if (minusIsPressed) vStatus->trigger |= VPAD_BUTTON_MINUS;
+    if (minusIsHeld) vStatus->hold |= VPAD_BUTTON_MINUS;
 }
 
 void calcKPAD(KPADStatus *kStatus) {
@@ -163,5 +196,19 @@ void calcKPAD(KPADStatus *kStatus) {
     if (buttonReleased(*kStatus) & BUTTON_RIGHT) {
         rightIsPressed = false;
         rightIsHeld = false;
+    }
+
+    if (buttonPressed(*kStatus) & BUTTON_PLUS) plusIsPressed = true;
+    if (buttonHeld(*kStatus) & BUTTON_PLUS) plusIsHeld = true;
+    if (buttonReleased(*kStatus) & BUTTON_PLUS) {
+        plusIsPressed = false;
+        plusIsHeld = false;
+    }
+
+    if (buttonPressed(*kStatus) & BUTTON_MINUS) minusIsPressed = true;
+    if (buttonHeld(*kStatus) & BUTTON_MINUS) minusIsHeld = true;
+    if (buttonReleased(*kStatus) & BUTTON_MINUS) {
+        minusIsPressed = false;
+        minusIsHeld = false;
     }
 }
