@@ -29,55 +29,79 @@ bool isConfigOpen = false;
 uint64_t sysTID = 0;
 uint64_t currentTID = 0;
 
+void mirrorScreensChanged(ConfigItemBoolean *item, bool newVal) {
+    mirrorScreens = newVal;
+    WUPSStorageAPI_StoreBool(NULL, MIRROR_SCREENS_CONFIG_ID, mirrorScreens);
+}
+
+void inputRedirectionChanged(ConfigItemBoolean *item, bool newVal) {
+    inputRedirection = newVal;
+    WUPSStorageAPI_StoreBool(NULL, INPUT_REDIRECTION_CONFIG_ID, inputRedirection);
+}
+
+WUPSConfigAPICallbackStatus ConfigMenuOpenedCallback(WUPSConfigCategoryHandle root) {
+    isConfigOpen = true;
+
+    if (WUPSConfigItemBoolean_AddToCategory(root, MIRROR_SCREENS_CONFIG_ID, "Mirror Gamepad screen to the TV", true, mirrorScreens, &mirrorScreensChanged) != WUPSCONFIG_API_RESULT_SUCCESS) {
+        WHBLogPrintf("Failed to add item");
+        return WUPSCONFIG_API_CALLBACK_RESULT_ERROR;
+    }
+
+    if (WUPSConfigItemBoolean_AddToCategory(root, INPUT_REDIRECTION_CONFIG_ID, "Redirect inputs", true, inputRedirection, &inputRedirectionChanged) != WUPSCONFIG_API_RESULT_SUCCESS) {
+        WHBLogPrintf("Failed to add item");
+        return WUPSCONFIG_API_CALLBACK_RESULT_ERROR;
+    } 
+
+    return WUPSCONFIG_API_CALLBACK_RESULT_SUCCESS;
+}
+
+void ConfigMenuClosedCallback() {
+    WUPSStorageAPI_SaveStorage(false);
+
+    isConfigOpen = false;
+}
+
 INITIALIZE_PLUGIN() {
     WHBLogUdpInit();
     WHBLogPrintf("Hola from Better Settings!");
 
     sysTID = _SYSGetSystemApplicationTitleId(SYSTEM_APP_ID_SYSTEM_SETTINGS);
 
-    WUPS_OpenStorage();
-    WUPS_GetBool(NULL, MIRROR_SCREENS_CONFIG_ID, &mirrorScreens);
-    WUPS_StoreBool(NULL, MIRROR_SCREENS_CONFIG_ID, mirrorScreens);
-    WUPS_GetBool(NULL, INPUT_REDIRECTION_CONFIG_ID, &inputRedirection);
-    WUPS_StoreBool(NULL, INPUT_REDIRECTION_CONFIG_ID, inputRedirection);
-    WUPS_CloseStorage();
+    WUPSConfigAPIOptionsV1 configOptions = {.name = "Better Settings"};
+    if (WUPSConfigAPI_Init(configOptions, ConfigMenuOpenedCallback, ConfigMenuClosedCallback) != WUPSCONFIG_API_RESULT_SUCCESS) {
+        WHBLogPrintf("Failed to init config api");
+    }
+
+    WUPSStorageError storageRes;
+    if ((storageRes = WUPSStorageAPI_GetBool(NULL, MIRROR_SCREENS_CONFIG_ID, &mirrorScreens)) == WUPS_STORAGE_ERROR_NOT_FOUND) {
+        if (WUPSStorageAPI_StoreBool(NULL, MIRROR_SCREENS_CONFIG_ID, mirrorScreens) != WUPS_STORAGE_ERROR_SUCCESS) {
+            WHBLogPrintf("Failed to store bool");
+        }
+    }
+    else if (storageRes != WUPS_STORAGE_ERROR_SUCCESS) {
+        WHBLogPrintf("Failed to get bool %s (%d)", WUPSConfigAPI_GetStatusStr(storageRes), storageRes);
+    }
+    else {
+        WHBLogPrintf("Successfully read the value from storage: %d %s (%d)", mirrorScreens, WUPSConfigAPI_GetStatusStr(storageRes), storageRes);
+    }    
+
+    if ((storageRes = WUPSStorageAPI_GetBool(NULL, INPUT_REDIRECTION_CONFIG_ID, &inputRedirection)) == WUPS_STORAGE_ERROR_NOT_FOUND) {
+        if (WUPSStorageAPI_StoreBool(NULL, INPUT_REDIRECTION_CONFIG_ID, inputRedirection) != WUPS_STORAGE_ERROR_SUCCESS) {
+            WHBLogPrintf("Failed to store bool");
+        }
+    }
+    else if (storageRes != WUPS_STORAGE_ERROR_SUCCESS) {
+        WHBLogPrintf("Failed to get bool %s (%d)", WUPSConfigAPI_GetStatusStr(storageRes), storageRes);
+    }
+    else {
+        WHBLogPrintf("Successfully read the value from storage: %d %s (%d)", inputRedirection, WUPSConfigAPI_GetStatusStr(storageRes), storageRes);
+    }        
+
+    WUPSStorageAPI_SaveStorage(false);    
 }
 
 ON_APPLICATION_START() {
     currentTID = OSGetTitleID();
-}
-
-void mirrorScreensChanged(ConfigItemBoolean *item, bool newVal) {
-    mirrorScreens = newVal;
-    WUPS_StoreBool(NULL, MIRROR_SCREENS_CONFIG_ID, mirrorScreens);
-}
-
-void inputRedirectionChanged(ConfigItemBoolean *item, bool newVal) {
-    inputRedirection = newVal;
-    WUPS_StoreBool(NULL, INPUT_REDIRECTION_CONFIG_ID, inputRedirection);
-}
-
-WUPS_GET_CONFIG() {
-    WUPS_OpenStorage();
-
-    isConfigOpen = true;
-
-    WUPSConfigHandle config;
-    WUPSConfig_CreateHandled(&config, "Better Settings");
-
-    WUPSConfigCategoryHandle cat;
-    WUPSConfig_AddCategoryByNameHandled(config, "Options", &cat);
-
-    WUPSConfigItemBoolean_AddToCategoryHandled(config, cat, MIRROR_SCREENS_CONFIG_ID, "Mirror Gamepad screen to the TV", mirrorScreens, &mirrorScreensChanged);
-    WUPSConfigItemBoolean_AddToCategoryHandled(config, cat, INPUT_REDIRECTION_CONFIG_ID, "Redirect inputs", inputRedirection, &inputRedirectionChanged);
-
-    return config;
-}
-
-WUPS_CONFIG_CLOSED() {
-    WUPS_CloseStorage();
-
-    isConfigOpen = false;
 }
 
 DECL_FUNCTION(void, GX2CopyColorBufferToScanBuffer, GX2ColorBuffer *colorBuffer, GX2ScanTarget scan_target) {
